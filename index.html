@@ -2,12 +2,14 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="网页钢琴 — 支持触摸、鼠标和键盘演奏">
     <meta name="theme-color" content="#333333">
+    <!-- iOS 全屏 PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="键盘钢琴">
+    <meta name="mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <title>🎹 键盘钢琴</title>
@@ -19,21 +21,30 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        html, body {
+            height: 100%;
+            /* iOS 安全区适配 */
+            height: 100dvh;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            touch-action: manipulation;
+            /* 安全区内边距（刘海/底部横条） */
+            padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px);
+            touch-action: none; /* 禁止浏览器默认手势，避免误触滚动 */
+            overflow: hidden;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .header h1 {
@@ -74,9 +85,10 @@
             position: relative;
             transition: all 0.08s ease;
             display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 12px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 8px;
             user-select: none;
         }
 
@@ -87,10 +99,17 @@
             transform: translateY(2px);
         }
 
+        .white-key .note-name {
+            font-size: 11px;
+            color: #909090;
+            font-weight: 400;
+            line-height: 1.2;
+        }
+
         .white-key .label {
-            font-size: 14px;
+            font-size: 13px;
             color: #505050;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .black-keys {
@@ -148,7 +167,7 @@
         }
 
         .status-bar {
-            margin-top: 20px;
+            margin-top: 16px;
             padding: 12px 20px;
             background: #f0f0f0;
             border-radius: 8px;
@@ -165,10 +184,24 @@
         }
 
         .hint {
-            margin-top: 15px;
+            margin-top: 12px;
             font-size: 12px;
             color: #808080;
             text-align: center;
+        }
+
+        /* 安装提示横幅（仅在非 PWA 模式显示） */
+        .install-hint {
+            display: none;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #5a8a5a;
+            text-align: center;
+            background: #e8f5e8;
+            padding: 8px 16px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 500px;
         }
 
         @media (max-width: 360px) {
@@ -181,7 +214,11 @@
             }
             
             .white-key .label {
-                font-size: 12px;
+                font-size: 11px;
+            }
+
+            .white-key .note-name {
+                font-size: 9px;
             }
             
             .black-key .label {
@@ -212,10 +249,11 @@
         <div class="status-text" id="statusText">点击琴键开始演奏</div>
     </div>
 
-    <div class="hint">支持触摸和键盘操作 · 白键 A~' · 黑键 W E T Y U I O</div>
+    <div class="hint">支持触摸和键盘操作 · 白键 A S D F G H J K L ; ' · 黑键 W E T Y U I O</div>
+    <div class="install-hint" id="installHint">📱 添加到主屏幕可全屏运行，体验更佳</div>
 
     <script>
-        // 音符频率表 (Hz)
+        // ── 音符频率表 (Hz) ──────────────────────────────────────────────
         const NOTE_FREQUENCIES = {
             'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
             'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
@@ -224,7 +262,7 @@
             'E5': 659.25, 'F5': 698.46
         };
 
-        // 白键配置（11 个白键，每个约 9.09% 宽）
+        // ── 白键配置 ────────────────────────────────────────────────────
         const WHITE_KEYS_CONFIG = [
             { note: 'C4', label: 'A' },
             { note: 'D4', label: 'S' },
@@ -239,20 +277,18 @@
             { note: 'F5', label: "'" }
         ];
 
-        // 黑键配置（位置百分比 — 在对应两个白键之间居中）
-        // 11 个白键，每个 ~9.09%，白键中心依次在 4.5%, 13.6%, 22.7%, 31.8%, 40.9%, 50%, 59.1%, 68.2%, 77.3%, 86.4%, 95.5%
-        // 黑键放在相邻白键中心的中间，减去自身宽度(8%)/2 = 4%
+        // ── 黑键配置 ────────────────────────────────────────────────────
         const BLACK_KEYS_CONFIG = [
-            { note: 'C#4', shortcut: 'W', position: 5 },    // 在 C4(4.5%) 和 D4(13.6%) 之间
-            { note: 'D#4', shortcut: 'E', position: 14.2 },  // 在 D4(13.6%) 和 E4(22.7%) 之间
-            { note: 'F#4', shortcut: 'T', position: 32.4 },  // 在 F4(31.8%) 和 G4(40.9%) 之间
-            { note: 'G#4', shortcut: 'Y', position: 41.5 },  // 在 G4(40.9%) 和 A4(50%) 之间
-            { note: 'A#4', shortcut: 'U', position: 50.6 },  // 在 A4(50%) 和 B4(59.1%) 之间
-            { note: 'C#5', shortcut: 'I', position: 68.7 },  // 在 C5(68.2%) 和 D5(77.3%) 之间
-            { note: 'D#5', shortcut: 'O', position: 77.8 }   // 在 D5(77.3%) 和 E5(86.4%) 之间
+            { note: 'C#4', shortcut: 'W', position: 5 },
+            { note: 'D#4', shortcut: 'E', position: 14.2 },
+            { note: 'F#4', shortcut: 'T', position: 32.4 },
+            { note: 'G#4', shortcut: 'Y', position: 41.5 },
+            { note: 'A#4', shortcut: 'U', position: 50.6 },
+            { note: 'C#5', shortcut: 'I', position: 68.7 },
+            { note: 'D#5', shortcut: 'O', position: 77.8 }
         ];
 
-        // 键盘映射
+        // ── 键盘映射 ────────────────────────────────────────────────────
         const KEYBOARD_MAP = {
             'a': 'C4', 's': 'D4', 'd': 'E4', 'f': 'F4', 'g': 'G4',
             'h': 'A4', 'j': 'B4', 'k': 'C5', 'l': 'D5', ';': 'E5', "'": 'F5',
@@ -260,11 +296,9 @@
             'i': 'C#5', 'o': 'D#5'
         };
 
-        // 最大同时发声数
+        // ── 音频 ────────────────────────────────────────────────────────
         const MAX_POLYPHONY = 10;
         let activeOscillators = [];
-
-        // 音频上下文
         let audioContext = null;
 
         function initAudio() {
@@ -273,11 +307,8 @@
             }
         }
 
-        // 生成钢琴音色（多振荡器叠加，更接近真实钢琴）
         function playNote(frequency) {
             initAudio();
-
-            // 限制同时发声数
             if (activeOscillators.length >= MAX_POLYPHONY) {
                 const oldest = activeOscillators.shift();
                 try { oldest.forEach(o => o.stop()); } catch(e) {}
@@ -290,7 +321,7 @@
 
             const oscs = [];
 
-            // 基音 — 三角波（柔和）
+            // 基音 — 三角波
             const osc1 = audioContext.createOscillator();
             const gain1 = audioContext.createGain();
             osc1.type = 'triangle';
@@ -300,13 +331,11 @@
             gain1.gain.linearRampToValueAtTime(0.35, now + 0.1);
             gain1.gain.linearRampToValueAtTime(0.25, now + 0.8);
             gain1.gain.linearRampToValueAtTime(0, now + 2.0);
-            osc1.connect(gain1);
-            gain1.connect(masterGain);
-            osc1.start(now);
-            osc1.stop(now + 2.0);
+            osc1.connect(gain1); gain1.connect(masterGain);
+            osc1.start(now); osc1.stop(now + 2.0);
             oscs.push(osc1);
 
-            // 二次泛音 — 正弦波（增加丰满度）
+            // 二次泛音 — 正弦波
             const osc2 = audioContext.createOscillator();
             const gain2 = audioContext.createGain();
             osc2.type = 'sine';
@@ -315,13 +344,11 @@
             gain2.gain.linearRampToValueAtTime(0.15, now + 0.01);
             gain2.gain.linearRampToValueAtTime(0.08, now + 0.15);
             gain2.gain.linearRampToValueAtTime(0, now + 1.2);
-            osc2.connect(gain2);
-            gain2.connect(masterGain);
-            osc2.start(now);
-            osc2.stop(now + 1.2);
+            osc2.connect(gain2); gain2.connect(masterGain);
+            osc2.start(now); osc2.stop(now + 1.2);
             oscs.push(osc2);
 
-            // 三次泛音 — 正弦波（增加明亮度/击弦感）
+            // 三次泛音 — 正弦波
             const osc3 = audioContext.createOscillator();
             const gain3 = audioContext.createGain();
             osc3.type = 'sine';
@@ -330,47 +357,59 @@
             gain3.gain.linearRampToValueAtTime(0.06, now + 0.005);
             gain3.gain.linearRampToValueAtTime(0.02, now + 0.08);
             gain3.gain.linearRampToValueAtTime(0, now + 0.6);
-            osc3.connect(gain3);
-            gain3.connect(masterGain);
-            osc3.start(now);
-            osc3.stop(now + 0.6);
+            osc3.connect(gain3); gain3.connect(masterGain);
+            osc3.start(now); osc3.stop(now + 0.6);
             oscs.push(osc3);
 
             activeOscillators.push(oscs);
-
-            // 自动清理
             setTimeout(() => {
                 const idx = activeOscillators.indexOf(oscs);
                 if (idx !== -1) activeOscillators.splice(idx, 1);
             }, 2100);
         }
 
-        // 创建白键
+        // ── 琴键状态管理 ────────────────────────────────────────────────
+        // 记录每个 touch identifier 当前激活的 key element
+        const touchActiveKeys = new Map(); // touchId -> keyElement
+        let mouseIsDown = false;
+        let mouseActiveKey = null;
+
+        function activateKey(keyElement, note) {
+            if (!keyElement || keyElement.classList.contains('active')) return;
+            keyElement.classList.add('active');
+            playNote(NOTE_FREQUENCIES[note]);
+            document.getElementById('statusText').textContent = `🎵 ${note}`;
+        }
+
+        function deactivateKey(keyElement) {
+            if (!keyElement) return;
+            keyElement.classList.remove('active');
+        }
+
+        function getKeyElementAt(x, y) {
+            // 临时隐藏 pointer-events 以正确穿透拿到底层元素
+            const el = document.elementFromPoint(x, y);
+            if (!el) return null;
+            if (el.classList.contains('white-key') || el.classList.contains('black-key')) return el;
+            // 可能点到了 label span
+            const parent = el.closest('.white-key, .black-key');
+            return parent || null;
+        }
+
+        // ── 创建白键 ────────────────────────────────────────────────────
         function createWhiteKeys() {
             const container = document.getElementById('whiteKeys');
             WHITE_KEYS_CONFIG.forEach((config) => {
                 const key = document.createElement('div');
                 key.className = 'white-key';
                 key.dataset.note = config.note;
-                key.innerHTML = `<span class="label">${config.label}</span>`;
-                
-                key.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    activateKey(key, config.note);
-                });
-                key.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    deactivateKey(key);
-                });
-                key.addEventListener('mousedown', () => activateKey(key, config.note));
-                key.addEventListener('mouseup', () => deactivateKey(key));
-                key.addEventListener('mouseleave', () => deactivateKey(key));
-                
+                // 显示音名 + 键盘快捷键
+                key.innerHTML = `<span class="note-name">${config.note.replace('#', '♯')}</span><span class="label">${config.label}</span>`;
                 container.appendChild(key);
             });
         }
 
-        // 创建黑键
+        // ── 创建黑键 ────────────────────────────────────────────────────
         function createBlackKeys() {
             const container = document.getElementById('blackKeys');
             BLACK_KEYS_CONFIG.forEach((config) => {
@@ -379,46 +418,94 @@
                 key.dataset.note = config.note;
                 key.style.left = config.position + '%';
                 key.innerHTML = `<span class="label"><span class="shortcut">${config.shortcut}</span><span class="note-name">${config.note.replace('#', '♯')}</span></span>`;
-                
-                key.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    activateKey(key, config.note);
-                });
-                key.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    deactivateKey(key);
-                });
-                key.addEventListener('mousedown', () => activateKey(key, config.note));
-                key.addEventListener('mouseup', () => deactivateKey(key));
-                key.addEventListener('mouseleave', () => deactivateKey(key));
-                
                 container.appendChild(key);
             });
         }
 
-        // 激活琴键
-        function activateKey(keyElement, note) {
-            keyElement.classList.add('active');
-            playNote(NOTE_FREQUENCIES[note]);
-            document.getElementById('statusText').textContent = `🎵 ${note}`;
+        // ── 触摸事件（支持多指滑奏）───────────────────────────────────
+        function handleTouchStart(e) {
+            e.preventDefault();
+            initAudio();
+            for (const touch of e.changedTouches) {
+                const el = getKeyElementAt(touch.clientX, touch.clientY);
+                if (el) {
+                    touchActiveKeys.set(touch.identifier, el);
+                    activateKey(el, el.dataset.note);
+                }
+            }
         }
 
-        // 停用琴键
-        function deactivateKey(keyElement) {
-            keyElement.classList.remove('active');
+        function handleTouchMove(e) {
+            e.preventDefault();
+            for (const touch of e.changedTouches) {
+                const newEl = getKeyElementAt(touch.clientX, touch.clientY);
+                const prevEl = touchActiveKeys.get(touch.identifier);
+                if (newEl !== prevEl) {
+                    if (prevEl) deactivateKey(prevEl);
+                    if (newEl) {
+                        touchActiveKeys.set(touch.identifier, newEl);
+                        activateKey(newEl, newEl.dataset.note);
+                    } else {
+                        touchActiveKeys.delete(touch.identifier);
+                    }
+                }
+            }
         }
 
-        // 键盘事件
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            for (const touch of e.changedTouches) {
+                const el = touchActiveKeys.get(touch.identifier);
+                if (el) deactivateKey(el);
+                touchActiveKeys.delete(touch.identifier);
+            }
+        }
+
+        // 在整个 document 上监听触摸，确保滑出 key 边界仍能追踪
+        document.addEventListener('touchstart', handleTouchStart, { passive: false });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: false });
+        document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+        // ── 鼠标事件（支持按住拖动滑过多键）────────────────────────────
+        document.addEventListener('mousedown', (e) => {
+            mouseIsDown = true;
+            initAudio();
+            const el = getKeyElementAt(e.clientX, e.clientY);
+            if (el) {
+                mouseActiveKey = el;
+                activateKey(el, el.dataset.note);
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!mouseIsDown) return;
+            const newEl = getKeyElementAt(e.clientX, e.clientY);
+            if (newEl !== mouseActiveKey) {
+                if (mouseActiveKey) deactivateKey(mouseActiveKey);
+                if (newEl) {
+                    mouseActiveKey = newEl;
+                    activateKey(newEl, newEl.dataset.note);
+                } else {
+                    mouseActiveKey = null;
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            mouseIsDown = false;
+            if (mouseActiveKey) deactivateKey(mouseActiveKey);
+            mouseActiveKey = null;
+        });
+
+        // ── 键盘事件 ────────────────────────────────────────────────────
         document.addEventListener('keydown', (e) => {
             if (e.repeat) return;
-            
             const key = e.key.toLowerCase();
             if (KEYBOARD_MAP[key]) {
                 const note = KEYBOARD_MAP[key];
                 const keyElement = document.querySelector(`[data-note="${note}"]`);
-                if (keyElement) {
-                    activateKey(keyElement, note);
-                }
+                if (keyElement) activateKey(keyElement, note);
             }
         });
 
@@ -427,21 +514,22 @@
             if (KEYBOARD_MAP[key]) {
                 const note = KEYBOARD_MAP[key];
                 const keyElement = document.querySelector(`[data-note="${note}"]`);
-                if (keyElement) {
-                    deactivateKey(keyElement);
-                }
+                if (keyElement) deactivateKey(keyElement);
             }
         });
 
-        // 初始化
+        // ── 初始化 ──────────────────────────────────────────────────────
         createWhiteKeys();
         createBlackKeys();
 
-        // 首次交互时初始化音频
-        document.addEventListener('touchstart', initAudio, { once: true });
-        document.addEventListener('click', initAudio, { once: true });
+        // 非 PWA 模式时显示"添加到主屏幕"提示
+        if (!window.matchMedia('(display-mode: fullscreen)').matches &&
+            !window.matchMedia('(display-mode: standalone)').matches &&
+            !window.navigator.standalone) {
+            document.getElementById('installHint').style.display = 'block';
+        }
 
-        // 注册 Service Worker
+        // ── Service Worker ───────────────────────────────────────────────
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
