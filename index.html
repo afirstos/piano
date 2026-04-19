@@ -224,6 +224,9 @@
                 <option value="birthday">生日快乐</option>
                 <option value="canon">卡农 (简单版)</option>
                 <option value="mary">玛丽的小羊羔</option>
+                <option value="sennen">千年盛开 (犬夜叉)</option>
+                <option value="ganesha">Ganesha Vandana</option>
+                <option value="omnamah">Om Namah Shivaya</option>
             </select>
             <button class="score-btn" id="scoreReset" style="display:none">↺ 重来</button>
             <div class="octave-control">
@@ -411,6 +414,47 @@
             name: '玛丽的小羊羔',
             notes: ['E4','D4','C4','D4','E4','E4','E4','_','D4','D4','D4','_','E4','G4','G4','_',
                     'E4','D4','C4','D4','E4','E4','E4','E4','D4','D4','E4','D4','C4']
+        },
+        sennen: {
+            name: '千年盛开 (犬夜叉)',
+            // 主旋律 Key of A minor，移调到 C 方便弹奏
+            // 原曲前奏+主歌旋律简化版
+            notes: [
+                'A4','_','A4','B4','C5','_','B4','A4',
+                'G4','_','G4','A4','B4','_','A4','G4',
+                'F4','_','F4','G4','A4','C5','_','A4',
+                'E4','_','E4','F4','G4','_','F4','E4',
+                'A4','C5','E5','_','D5','C5','B4','_','A4',
+                'G4','B4','D5','_','C5','B4','A4','_','G4',
+                'F4','A4','C5','_','B4','A4','G4','F4','_','E4',
+                'A4','_','G4','_','A4'
+            ]
+        },
+        ganesha: {
+            name: 'Ganesha Vandana (Sahaja)',
+            // 基于 Sahaja Yoga 常唱的 Shri Ganesha 赞颂旋律
+            // 旋律：Om Gam Ganapataye / Vakratunda Mahakaya 简版
+            notes: [
+                'G4','A4','B4','C5','_','B4','A4','G4','_',
+                'E4','G4','A4','G4','_','E4','D4','E4','_',
+                'G4','G4','A4','B4','C5','B4','_','A4','G4',
+                'E4','F4','G4','A4','_','G4','E4','_',
+                'C5','B4','A4','G4','_','A4','B4','C5','_',
+                'G4','A4','B4','_','A4','G4','E4','_',
+                'D4','E4','G4','A4','G4','_','E4','D4','_','C4'
+            ]
+        },
+        omnamah: {
+            name: 'Om Namah Shivaya (Sahaja)',
+            // Sahaja Yoga 冥想常用，平静旋律
+            notes: [
+                'E4','_','E4','D4','E4','_','G4','G4','E4','_',
+                'A4','_','A4','G4','A4','_','C5','B4','A4','_',
+                'G4','E4','G4','A4','_','G4','E4','D4','_','E4','_',
+                'A4','G4','E4','_','D4','E4','G4','_','E4','_',
+                'G4','A4','C5','_','B4','A4','G4','E4','_',
+                'D4','E4','G4','A4','_','G4','_','E4'
+            ]
         }
     };
 
@@ -786,7 +830,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js?v=6')
+            navigator.serviceWorker.register('./sw.js?v=7')
                 .then((reg) => console.log('✓ SW 注册成功:', reg.scope))
                 .catch((err) => console.log('SW 注册失败:', err));
         });
