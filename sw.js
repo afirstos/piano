@@ -1,5 +1,5 @@
 // Service Worker for Piano App - 支持离线运行（Stale-While-Revalidate）
-const CACHE_NAME = 'piano-cache-v3';
+const CACHE_NAME = 'piano-cache-v4';
 const ASSETS = [
   './',
   './index.html',
