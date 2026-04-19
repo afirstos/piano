@@ -92,15 +92,16 @@
             transition: width 0.2s; width: 0%;
         }
 
-        /* ── 钢琴区域（竖屏固定高度，横屏撑满） ── */
+        /* ── 钢琴区域（竖屏固定高度+上限，横屏撑满） ── */
         .piano-container {
             width: 100%; max-width: 600px;
             padding: 8px; background: #fafafa; border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             display: flex; flex-direction: column; min-height: 0;
             margin-top: 4px;
-            /* 竖屏：固定高度 50dvh，不会撑满 */
-            height: 50dvh;
+            /* 竖屏：尽量撑满，但不超过 55dvh */
+            flex: 1;
+            max-height: 55dvh;
         }
         .keys-wrapper {
             flex: 1; position: relative; width: 100%; min-height: 0;
@@ -773,7 +774,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js?v=10')
+            navigator.serviceWorker.register('./sw.js?v=11')
                 .then((reg) => console.log('✓ SW 注册成功:', reg.scope))
                 .catch((err) => console.log('SW 注册失败:', err));
         });
