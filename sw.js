@@ -1,5 +1,5 @@
 // Service Worker for Piano App - Network First，确保始终获取最新版本
-const CACHE_NAME = 'piano-cache-v7';
+const CACHE_NAME = 'piano-cache-v8';
 const ASSETS = [
   './',
   './index.html',

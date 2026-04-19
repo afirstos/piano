@@ -14,109 +14,106 @@
     <title>🎹 键盘钢琴</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { height: 100%; height: 100dvh; }
+        html { height: 100%; overflow: hidden; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%);
-            min-height: 100vh; min-height: 100dvh;
+            height: 100%; height: 100dvh;
             display: flex; flex-direction: column; align-items: center;
             padding: env(safe-area-inset-top, 4px) 8px env(safe-area-inset-bottom, 4px);
-            touch-action: none; overflow: hidden; user-select: none;
-            gap: 4px;
+            overflow: hidden; user-select: none;
+            /* touch-action 不设在 body，只设在琴键和按钮上 */
         }
 
-        .octave-control {
+        /* ── 控件区域（按钮、下拉、曲谱）── */
+        .controls-area {
+            flex-shrink: 0; width: 100%; max-width: 600px;
+            display: flex; flex-direction: column; gap: 4px;
+            padding-top: 2px;
+        }
+        .score-controls {
             display: flex; align-items: center; gap: 6px;
-            margin-left: auto;
+        }
+        .octave-control {
+            display: flex; align-items: center; gap: 4px;
+            margin-left: auto; flex-shrink: 0;
         }
         .octave-btn {
-            width: 36px; height: 36px; border: none; border-radius: 8px;
-            background: #e0e0e0; color: #323232; font-size: 18px; font-weight: 700;
+            width: 32px; height: 32px; border: none; border-radius: 6px;
+            background: #e0e0e0; color: #323232; font-size: 16px; font-weight: 700;
             cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: background 0.15s;
+            transition: background 0.15s; touch-action: manipulation;
         }
         .octave-btn:active { background: #c0c0c0; }
         .octave-label {
-            font-size: 13px; color: #666; min-width: 60px; text-align: center;
-            font-weight: 500;
+            font-size: 12px; color: #666; min-width: 54px; text-align: center; font-weight: 500;
         }
 
-        /* ── 曲谱区域 ── */
-        .score-bar {
-            width: 100%; max-width: 600px; flex-shrink: 0;
-            margin-bottom: 6px;
-        }
-        .score-controls {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
-        }
+        /* ── 曲谱 ── */
         .score-btn {
-            padding: 5px 12px; border: 1px solid #d0d0d0; border-radius: 6px;
-            background: #fff; color: #323232; font-size: 12px; cursor: pointer;
-            transition: all 0.15s; white-space: nowrap;
+            padding: 4px 10px; border: 1px solid #d0d0d0; border-radius: 6px;
+            background: #fff; color: #323232; font-size: 11px; cursor: pointer;
+            transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+            touch-action: manipulation;
         }
         .score-btn:active { background: #e8e8e8; }
         .score-btn.active { background: #4a7ab5; color: #fff; border-color: #4a7ab5; }
-
         .score-select {
-            padding: 5px 8px; border: 1px solid #d0d0d0; border-radius: 6px;
-            font-size: 12px; color: #323232; background: #fff; flex: 1;
-            max-width: 160px;
+            padding: 4px 6px; border: 1px solid #d0d0d0; border-radius: 6px;
+            font-size: 11px; color: #323232; background: #fff; flex: 1;
+            max-width: 140px; touch-action: manipulation; /* 关键：让 select 可交互 */
         }
-
         .score-display {
-            display: flex; gap: 3px; overflow-x: auto; padding: 6px 4px;
-            background: #fff; border-radius: 8px; border: 1px solid #e0e0e0;
+            display: flex; gap: 2px; overflow-x: auto; padding: 4px 3px;
+            background: #fff; border-radius: 6px; border: 1px solid #e0e0e0;
             scrollbar-width: thin; -webkit-overflow-scrolling: touch;
-            min-height: 50px; align-items: center; touch-action: pan-x;
+            min-height: 42px; max-height: 42px; align-items: center;
+            touch-action: pan-x; /* 曲谱可水平滚动 */
         }
-        .score-display::-webkit-scrollbar { height: 3px; }
-        .score-display::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
-
+        .score-display::-webkit-scrollbar { height: 2px; }
+        .score-display::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
         .score-note {
             display: inline-flex; flex-direction: column; align-items: center;
-            justify-content: center; min-width: 36px; height: 38px;
-            border-radius: 6px; font-size: 12px; font-weight: 600;
+            justify-content: center; min-width: 32px; height: 34px;
+            border-radius: 5px; font-size: 11px; font-weight: 600;
             flex-shrink: 0; transition: all 0.2s;
         }
-        .score-note.white-note {
-            background: #f5f5f5; color: #333; border: 1.5px solid #ddd;
-        }
-        .score-note.black-note {
-            background: #3a3a3a; color: #fff; border: 1.5px solid #222;
-        }
-        .score-note.current {
-            transform: scale(1.15); box-shadow: 0 0 0 2px #4a7ab5;
-            z-index: 1;
-        }
-        .score-note.played {
-            opacity: 0.35; transform: scale(0.9);
-        }
-        .score-note .note-label { font-size: 11px; line-height: 1; }
-        .score-note .note-dot { font-size: 7px; opacity: 0.5; margin-top: 1px; }
-
+        .score-note.white-note { background: #f5f5f5; color: #333; border: 1.5px solid #ddd; }
+        .score-note.black-note { background: #3a3a3a; color: #fff; border: 1.5px solid #222; }
+        .score-note.current { transform: scale(1.15); box-shadow: 0 0 0 2px #4a7ab5; z-index: 1; }
+        .score-note.played { opacity: 0.35; transform: scale(0.9); }
+        .score-note .note-label { font-size: 10px; line-height: 1; }
         .score-progress {
-            width: 100%; height: 3px; background: #e0e0e0; border-radius: 2px;
-            margin-top: 4px; overflow: hidden;
+            width: 100%; height: 2px; background: #e0e0e0; border-radius: 2px;
+            overflow: hidden; flex-shrink: 0;
         }
         .score-progress-bar {
             height: 100%; background: #4a7ab5; border-radius: 2px;
             transition: width 0.2s; width: 0%;
         }
 
-        /* ── 钢琴 ── */
+        /* ── 钢琴区域（flex:1 自动撑满） ── */
         .piano-container {
-            position: relative; width: 100%; max-width: 600px;
-            padding: 12px; background: #fafafa; border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); flex-shrink: 0;
+            flex: 1; width: 100%; max-width: 600px;
+            padding: 8px; background: #fafafa; border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; min-height: 0;
+            margin-top: 4px;
         }
-        .keys-wrapper { position: relative; width: 100%; height: 200px; }
-        .white-keys { display: flex; width: 100%; height: 100%; gap: 1.5px; }
+        .keys-wrapper {
+            flex: 1; position: relative; width: 100%; min-height: 0;
+        }
+        .white-keys {
+            display: flex; width: 100%; height: 100%; gap: 1.5px;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        }
         .white-key {
             flex: 1; background: linear-gradient(180deg, #fff 0%, #f0f0f0 100%);
             border: 1px solid #d0d0d0; border-radius: 0 0 5px 5px;
             cursor: pointer; position: relative; transition: all 0.08s ease;
             display: flex; flex-direction: column; align-items: center;
             justify-content: flex-end; padding-bottom: 4px; user-select: none;
+            touch-action: none; /* 琴键区域禁止浏览器默认手势 */
         }
         .white-key:active, .white-key.active {
             background: linear-gradient(180deg, #c8dcf0 0%, #b8d0e8 100%);
@@ -126,7 +123,6 @@
             background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%) !important;
             border-color: #ffb74d !important;
         }
-        /* 小火苗 */
         .key-flame {
             position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
             font-size: 20px; pointer-events: none; z-index: 20;
@@ -159,6 +155,7 @@
             cursor: pointer; pointer-events: auto; transition: all 0.08s ease;
             display: flex; align-items: flex-end; justify-content: center;
             padding-bottom: 4px; user-select: none; overflow: visible;
+            touch-action: none;
         }
         .black-key:active, .black-key.active {
             background: linear-gradient(180deg, #6a5a8a 0%, #5a4a7a 100%);
@@ -168,30 +165,22 @@
             background: linear-gradient(180deg, #e65100 0%, #bf360c 100%) !important;
             border-color: #e65100 !important;
         }
-        .black-key .label {
-            font-size: 9px; color: #fff; font-weight: 500;
-            line-height: 1.1; text-align: center;
-        }
+        .black-key .label { font-size: 9px; color: #fff; font-weight: 500; line-height: 1.1; text-align: center; }
         .black-key .label .shortcut { display: block; font-size: 11px; font-weight: 600; margin-bottom: 1px; }
         .black-key .label .note-name { display: block; font-size: 8px; opacity: 0.6; }
 
         /* ── 底栏 ── */
         .status-bar {
-            margin-top: 8px; padding: 6px 16px; background: #f0f0f0;
-            border-radius: 8px; text-align: center; min-height: 28px;
-            width: 100%; max-width: 600px; flex-shrink: 0;
-            transition: all 0.2s;
+            flex-shrink: 0; padding: 4px 12px; background: #f0f0f0;
+            border-radius: 6px; text-align: center; min-height: 24px;
+            width: 100%; max-width: 600px; margin-top: 4px;
         }
-        .status-bar.score-active { padding: 8px 16px; min-height: 36px; }
-        .status-text { font-size: 13px; color: #323232; font-weight: 500; transition: font-size 0.2s; }
-        .status-bar.score-active .status-text { font-size: 15px; font-weight: 600; }
-        .hint {
-            margin-top: 6px; font-size: 11px; color: #999; text-align: center; flex-shrink: 0;
-        }
+        .status-text { font-size: 12px; color: #323232; font-weight: 500; }
+        .hint { flex-shrink: 0; margin-top: 3px; font-size: 10px; color: #999; text-align: center; }
         .install-hint {
-            display: none; margin-top: 6px; font-size: 11px; color: #5a8a5a;
-            text-align: center; background: #e8f5e8; padding: 6px 12px;
-            border-radius: 8px; width: 100%; max-width: 600px; flex-shrink: 0;
+            display: none; flex-shrink: 0; margin-top: 3px; font-size: 10px; color: #5a8a5a;
+            text-align: center; background: #e8f5e8; padding: 4px 10px;
+            border-radius: 6px; width: 100%; max-width: 600px;
         }
 
         @keyframes shake {
@@ -202,20 +191,36 @@
             80% { transform: translateX(2px); }
         }
 
+        /* ── 横屏适配 ── */
+        @media (orientation: landscape) {
+            .controls-area { padding-top: 0; gap: 2px; }
+            .score-controls { gap: 4px; }
+            .octave-btn { width: 28px; height: 28px; font-size: 14px; }
+            .octave-label { font-size: 11px; min-width: 48px; }
+            .score-btn { padding: 3px 8px; font-size: 10px; }
+            .score-select { padding: 3px 4px; font-size: 10px; max-width: 110px; }
+            .score-display { min-height: 32px; max-height: 32px; padding: 2px 3px; }
+            .score-note { min-width: 26px; height: 26px; font-size: 9px; }
+            .piano-container { padding: 4px; border-radius: 6px; margin-top: 2px; }
+            .status-bar { padding: 2px 10px; min-height: 20px; margin-top: 2px; }
+            .status-text { font-size: 11px; }
+            .hint { display: none; }
+            .install-hint { display: none; }
+        }
+
+        /* ── 小屏 ── */
         @media (max-width: 360px) {
-            .keys-wrapper { height: 170px; }
             .white-key .label { font-size: 10px; }
             .white-key .note-name { font-size: 8px; }
             .black-key .label { font-size: 8px; }
             .black-key .label .shortcut { font-size: 10px; }
             .black-key .label .note-name { font-size: 7px; }
-            .score-note { min-width: 30px; height: 32px; font-size: 10px; }
         }
     </style>
 </head>
 <body>
-    <!-- 曲谱模式 -->
-    <div class="score-bar" id="scoreBar">
+    <!-- 控件区 -->
+    <div class="controls-area">
         <div class="score-controls">
             <button class="score-btn" id="scoreToggle">📖 曲谱</button>
             <select class="score-select" id="songSelect">
@@ -224,22 +229,22 @@
                 <option value="birthday">生日快乐</option>
                 <option value="canon">卡农 (简单版)</option>
                 <option value="mary">玛丽的小羊羔</option>
-                <option value="sennen">千年盛开 (犬夜叉)</option>
+                <option value="sennen">千年盛开 (Sahaja)</option>
                 <option value="ganesha">Ganesha Vandana</option>
                 <option value="omnamah">Om Namah Shivaya</option>
             </select>
-            <button class="score-btn" id="scoreReset" style="display:none">↺ 重来</button>
+            <button class="score-btn" id="scoreReset" style="display:none">↺</button>
             <div class="octave-control">
                 <button class="octave-btn" id="octDown">−</button>
                 <span class="octave-label" id="octaveLabel">C4 – B5</span>
                 <button class="octave-btn" id="octUp">+</button>
             </div>
         </div>
-        <div class="score-display" id="scoreDisplay"></div>
-        <div class="score-progress"><div class="score-progress-bar" id="scoreProgressBar"></div></div>
+        <div class="score-display" id="scoreDisplay" style="display:none"></div>
+        <div class="score-progress" id="scoreProgressWrap" style="display:none"><div class="score-progress-bar" id="scoreProgressBar"></div></div>
     </div>
 
-    <!-- 钢琴 -->
+    <!-- 钢琴（flex:1 撑满剩余空间） -->
     <div class="piano-container">
         <div class="keys-wrapper">
             <div class="white-keys" id="whiteKeys"></div>
@@ -247,7 +252,7 @@
         </div>
     </div>
 
-    <div class="status-bar">
+    <div class="status-bar" id="statusBar">
         <div class="status-text" id="statusText">点击琴键开始演奏</div>
     </div>
     <div class="hint">触摸/鼠标演奏 · 键盘 A~' 白键 W E T Y U I O 黑键 · Z/X 切换八度</div>
@@ -259,38 +264,28 @@
     // ════════════════════════════════════════════════════════════════
     const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     const WHITE_NOTE_NAMES = ['C','D','E','F','G','A','B'];
-    const BLACK_NOTE_INDICES = [1, 3, 6, 8, 10]; // C# D# F# G# A# 在12音中的index
+    const BLACK_NOTE_INDICES = [1, 3, 6, 8, 10];
 
-    // 根据八度计算频率
     function getFrequency(noteName, octave) {
-        // A4 = 440Hz, MIDI 69
         const noteIndex = NOTE_NAMES.indexOf(noteName);
         const midi = (octave + 1) * 12 + noteIndex;
         return 440 * Math.pow(2, (midi - 69) / 12);
     }
 
-    // 当前八度（显示两个八度）
-    let baseOctave = 4; // 显示 C4-B5
+    let baseOctave = 4;
     const MIN_OCTAVE = 2;
     const MAX_OCTAVE = 6;
 
-    // 键盘快捷键映射（固定位置，对应屏幕上当前显示的键）
     const WHITE_SHORTCUTS = ['A','S','D','F','G','H','J','K','L',';',"'",'','',''];
-    // 前7个黑键有快捷键: C#4 D#4 F#4 G#4 A#4 C#5 D#5 → W E T Y U I O
     const BLACK_SHORTCUTS_FLAT = ['W','E','T','Y','U','I','O'];
 
-    // 生成当前八度范围的配置
     function generateKeys() {
-        const whiteKeys = [];
-        const blackKeys = [];
-
+        const whiteKeys = [], blackKeys = [];
         let blackCount = 0;
         for (let oct = baseOctave; oct <= baseOctave + 1; oct++) {
-            // 白键
             WHITE_NOTE_NAMES.forEach((name) => {
                 whiteKeys.push({ note: `${name}${oct}`, freq: getFrequency(name, oct) });
             });
-            // 黑键
             BLACK_NOTE_INDICES.forEach((idx) => {
                 blackKeys.push({
                     note: `${NOTE_NAMES[idx]}${oct}`,
@@ -304,17 +299,12 @@
         return { whiteKeys, blackKeys };
     }
 
-    // 黑键位置百分比（基于一个八度内7个白键的比例）
-    // 两个八度 = 14个白键，每白键约 7.14%
-    // 黑键位置 = (octOffset * 7 + posInOct) / 14 * 100
-    // 一个八度内黑键在白键间的位置（以白键index计算）
     function getBlackKeyPosition(octOffset, whiteKeyIdx) {
         const totalWhites = 14;
         const pos = octOffset * 7 + whiteKeyIdx;
-        // 黑键在相邻两个白键之间，白键index对应: C#→0-1间, D#→1-2间, F#→3-4间, G#→4-5间, A#→5-6间
         const gapCenter = pos + 0.5;
         const pct = (gapCenter / totalWhites) * 100;
-        return pct - 3.75; // 减去半个黑键宽度(7.5/2)
+        return pct - 3.75;
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -326,6 +316,7 @@
 
     function initAudio() {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') audioContext.resume();
     }
 
     function playNote(frequency) {
@@ -335,7 +326,6 @@
             try { oldest.forEach(o => o.stop()); } catch(e) {}
         }
         const now = audioContext.currentTime;
-        // 低通滤波器柔化音色
         const lpf = audioContext.createBiquadFilter();
         lpf.type = 'lowpass';
         lpf.frequency.setValueAtTime(Math.min(frequency * 6, 8000), now);
@@ -347,7 +337,6 @@
         masterGain.connect(lpf);
         const oscs = [];
 
-        // 基音 — 三角波
         const o1 = audioContext.createOscillator(), g1 = audioContext.createGain();
         o1.type = 'triangle'; o1.frequency.setValueAtTime(frequency, now);
         g1.gain.setValueAtTime(0, now);
@@ -358,7 +347,6 @@
         o1.connect(g1); g1.connect(masterGain);
         o1.start(now); o1.stop(now + 2.0); oscs.push(o1);
 
-        // 二次泛音
         const o2 = audioContext.createOscillator(), g2 = audioContext.createGain();
         o2.type = 'sine'; o2.frequency.setValueAtTime(frequency * 2, now);
         g2.gain.setValueAtTime(0, now);
@@ -368,7 +356,6 @@
         o2.connect(g2); g2.connect(masterGain);
         o2.start(now); o2.stop(now + 1.2); oscs.push(o2);
 
-        // 三次泛音
         const o3 = audioContext.createOscillator(), g3 = audioContext.createGain();
         o3.type = 'sine'; o3.frequency.setValueAtTime(frequency * 3, now);
         g3.gain.setValueAtTime(0, now);
@@ -416,9 +403,7 @@
                     'E4','D4','C4','D4','E4','E4','E4','E4','D4','D4','E4','D4','C4']
         },
         sennen: {
-            name: '千年盛开 (犬夜叉)',
-            // 主旋律 Key of A minor，移调到 C 方便弹奏
-            // 原曲前奏+主歌旋律简化版
+            name: '千年盛开 (Sahaja)',
             notes: [
                 'A4','_','A4','B4','C5','_','B4','A4',
                 'G4','_','G4','A4','B4','_','A4','G4',
@@ -432,8 +417,6 @@
         },
         ganesha: {
             name: 'Ganesha Vandana (Sahaja)',
-            // 基于 Sahaja Yoga 常唱的 Shri Ganesha 赞颂旋律
-            // 旋律：Om Gam Ganapataye / Vakratunda Mahakaya 简版
             notes: [
                 'G4','A4','B4','C5','_','B4','A4','G4','_',
                 'E4','G4','A4','G4','_','E4','D4','E4','_',
@@ -446,7 +429,6 @@
         },
         omnamah: {
             name: 'Om Namah Shivaya (Sahaja)',
-            // Sahaja Yoga 冥想常用，平静旋律
             notes: [
                 'E4','_','E4','D4','E4','_','G4','G4','E4','_',
                 'A4','_','A4','G4','A4','_','C5','B4','A4','_',
@@ -462,21 +444,16 @@
     let currentSong = 'twinkle';
     let scoreIndex = 0;
     let scoreNotes = [];
-    let scoreRealNotes = []; // 缓存过滤后的数组
+    let scoreRealNotes = [];
     let combo = 0;
 
-    // 根据曲谱音符和当前八度映射到屏幕上的键
     function mapSongNoteToCurrent(note) {
         if (note === '_') return null;
         const match = note.match(/^([A-G]#?)(\d)$/);
         if (!match) return null;
         const [, name, oct] = match;
         const targetOct = parseInt(oct);
-        // 在当前显示的两个八度中找
-        if (targetOct >= baseOctave && targetOct <= baseOctave + 1) {
-            return note;
-        }
-        // 超出范围的不高亮（但仍显示在谱面上）
+        if (targetOct >= baseOctave && targetOct <= baseOctave + 1) return note;
         return null;
     }
 
@@ -484,18 +461,16 @@
         scoreMode = !scoreMode;
         document.getElementById('scoreToggle').classList.toggle('active', scoreMode);
         document.getElementById('scoreDisplay').style.display = scoreMode ? 'flex' : 'none';
-        document.getElementById('scoreProgressBar').parentElement.style.display = scoreMode ? 'block' : 'none';
+        document.getElementById('scoreProgressWrap').style.display = scoreMode ? 'block' : 'none';
         document.getElementById('songSelect').style.display = scoreMode ? 'block' : 'none';
         document.getElementById('scoreReset').style.display = scoreMode ? 'inline-block' : 'none';
-        document.querySelector('.status-bar').classList.toggle('score-active', scoreMode);
         if (scoreMode) loadSong(currentSong);
         else { clearScoreHighlights(false); document.getElementById('statusText').textContent = '点击琴键开始演奏'; }
     }
 
     function loadSong(songId) {
         currentSong = songId;
-        scoreIndex = 0;
-        combo = 0;
+        scoreIndex = 0; combo = 0;
         scoreNotes = SONGS[songId].notes;
         scoreRealNotes = scoreNotes.filter(n => n !== '_');
         renderScore();
@@ -505,12 +480,12 @@
     function renderScore() {
         const container = document.getElementById('scoreDisplay');
         container.innerHTML = '';
-        scoreNotes.forEach((note, i) => {
+        scoreNotes.forEach((note) => {
             if (note === '_') {
                 const rest = document.createElement('div');
                 rest.className = 'score-note';
                 rest.style.background = 'transparent'; rest.style.border = 'none';
-                rest.style.minWidth = '16px'; rest.style.color = '#ccc';
+                rest.style.minWidth = '14px'; rest.style.color = '#ccc';
                 rest.textContent = '·';
                 container.appendChild(rest);
                 return;
@@ -532,10 +507,8 @@
             if (i < scoreIndex) el.classList.add('played');
             else if (i === scoreIndex) el.classList.add('current');
         });
-        // 滚动到当前音符
         const current = document.querySelector('#scoreDisplay .score-note.current');
         if (current) current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        // 进度条
         const total = scoreRealNotes.length;
         const pct = total > 0 ? (scoreIndex / total) * 100 : 0;
         document.getElementById('scoreProgressBar').style.width = pct + '%';
@@ -544,11 +517,9 @@
     function checkScoreInput(note) {
         if (!scoreMode) return;
         if (scoreIndex >= scoreRealNotes.length) {
-            // 弹完了
             document.getElementById('statusText').textContent = `🎉 太棒了！全部弹完！最高连击 ${combo}`;
             clearScoreHighlights(true);
-            scoreIndex = 0;
-            combo = 0;
+            scoreIndex = 0; combo = 0;
             setTimeout(() => { updateScoreUI(); highlightNextNote(); }, 800);
             return;
         }
@@ -562,7 +533,6 @@
             updateScoreUI();
             setTimeout(() => highlightNextNote(), 100);
         } else {
-            // 弹错了：琴键抖动 + combo 归零
             combo = 0;
             const wrongEl = document.querySelector(`.piano-container [data-note="${note}"]`);
             if (wrongEl) {
@@ -575,7 +545,6 @@
 
     function highlightNextNote() {
         clearScoreHighlights(false);
-        // 找到下一个要弹的音符
         if (scoreIndex >= scoreRealNotes.length) return;
         const nextNote = scoreRealNotes[scoreIndex];
         const mappedNote = mapSongNoteToCurrent(nextNote);
@@ -610,23 +579,18 @@
     // ════════════════════════════════════════════════════════════════
     // 琴键渲染
     // ════════════════════════════════════════════════════════════════
-    let currentWhiteKeys = []; // 当前白键note列表（用于键盘映射）
+    let currentWhiteKeys = [];
     let currentBlackKeys = [];
-
-    // 黑键在八度内对应的白键index（用于定位）
-    // C#在C-D间(0-1), D#在D-E间(1-2), F#在F-G间(3-4), G#在G-A间(4-5), A#在A-B间(5-6)
-    const BLACK_KEY_WHITE_POSITIONS = [0, 1, 3, 4, 5]; // 对应白键index
+    const BLACK_KEY_WHITE_POSITIONS = [0, 1, 3, 4, 5];
 
     function buildPiano() {
         const { whiteKeys, blackKeys } = generateKeys();
         currentWhiteKeys = whiteKeys;
         currentBlackKeys = blackKeys;
 
-        // 清空
         document.getElementById('whiteKeys').innerHTML = '';
         document.getElementById('blackKeys').innerHTML = '';
 
-        // 白键
         whiteKeys.forEach((k, i) => {
             const el = document.createElement('div');
             el.className = 'white-key';
@@ -636,12 +600,10 @@
             document.getElementById('whiteKeys').appendChild(el);
         });
 
-        // 黑键
         blackKeys.forEach((k, i) => {
             const octIdx = k.octOffset;
             const posInOct = BLACK_KEY_WHITE_POSITIONS[i % 5];
             const leftPct = getBlackKeyPosition(octIdx, posInOct);
-
             const el = document.createElement('div');
             el.className = 'black-key';
             el.dataset.note = k.note;
@@ -650,17 +612,11 @@
             document.getElementById('blackKeys').appendChild(el);
         });
 
-        // 更新八度标签
         document.getElementById('octaveLabel').textContent = `C${baseOctave} – B${baseOctave + 1}`;
-
-        // 重建键盘映射
         buildKeyboardMap();
-
-        // 曲谱模式下重新高亮
         if (scoreMode) highlightNextNote();
     }
 
-    // 键盘映射：根据当前白键/黑键列表动态映射
     let KEYBOARD_MAP = {};
     function buildKeyboardMap() {
         KEYBOARD_MAP = {};
@@ -669,9 +625,7 @@
         currentWhiteKeys.forEach((k, i) => {
             if (i < wShortcuts.length) KEYBOARD_MAP[wShortcuts[i]] = k.note;
         });
-        // 黑键按顺序对应：C# D# F# G# A# C# D#（跳过每八度内无黑键的位置）
-        // 两个八度各5个黑键，index 0-9，W E 对应0,1 T Y U对应2,3,4 I O对应5,6
-        const bOrder = [0,1,2,3,4,5,6]; // 前7个黑键按视觉顺序
+        const bOrder = [0,1,2,3,4,5,6];
         bOrder.forEach((idx, i) => {
             if (i < bShortcuts.length && idx < currentBlackKeys.length) {
                 KEYBOARD_MAP[bShortcuts[i]] = currentBlackKeys[idx].note;
@@ -680,7 +634,7 @@
     }
 
     // ════════════════════════════════════════════════════════════════
-    // 琴键交互
+    // 琴键交互 — 触摸只拦截琴键区域的 touch，不影响按钮/select
     // ════════════════════════════════════════════════════════════════
     const touchActiveKeys = new Map();
     let mouseIsDown = false, mouseActiveKey = null;
@@ -706,8 +660,18 @@
         return el.closest('.white-key, .black-key') || null;
     }
 
-    // 触摸
+    // 触摸 — 只在钢琴容器和附近区域生效，不阻止控件交互
+    const pianoContainer = document.querySelector('.piano-container');
+
     function handleTouchStart(e) {
+        // 检查触摸是否在控件区域（按钮/select/曲谱），如果是则不处理
+        for (const touch of e.changedTouches) {
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target && (target.closest('.controls-area') || target.closest('.octave-control')
+                || target.closest('.status-bar') || target.closest('.hint') || target.closest('.install-hint'))) {
+                return; // 不 preventDefault，让浏览器正常处理
+            }
+        }
         e.preventDefault(); initAudio();
         for (const touch of e.changedTouches) {
             const el = getKeyElementAt(touch.clientX, touch.clientY);
@@ -715,8 +679,11 @@
         }
     }
     function handleTouchMove(e) {
+        // 如果没有任何手指在琴键上，就不拦截
+        if (touchActiveKeys.size === 0) return;
         e.preventDefault();
         for (const touch of e.changedTouches) {
+            if (!touchActiveKeys.has(touch.identifier)) continue;
             const newEl = getKeyElementAt(touch.clientX, touch.clientY);
             const prev = touchActiveKeys.get(touch.identifier);
             if (newEl !== prev) {
@@ -734,6 +701,7 @@
             touchActiveKeys.delete(touch.identifier);
         }
     }
+    // 用 { passive: false } + 选择性 preventDefault
     document.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -790,37 +758,19 @@
     }
 
     // ════════════════════════════════════════════════════════════════
-    // 按钮事件（pointerdown 确保 touch-action:none 下也能触发，
-    //           pointer-events 不会被 document touchstart 的 preventDefault 阻断）
+    // 按钮事件 — 用 click 而非 pointerdown，避免和 select 冲突
+    // 按钮上设 touch-action: manipulation 让 click 在触摸设备上可靠触发
     // ════════════════════════════════════════════════════════════════
-    document.getElementById('octDown').addEventListener('pointerdown', (e) => {
-        e.stopPropagation(); e.preventDefault(); shiftOctave(-1);
-    });
-    document.getElementById('octUp').addEventListener('pointerdown', (e) => {
-        e.stopPropagation(); e.preventDefault(); shiftOctave(1);
-    });
-    document.getElementById('scoreToggle').addEventListener('pointerdown', (e) => {
-        e.stopPropagation(); e.preventDefault(); toggleScoreMode();
-    });
-    document.getElementById('songSelect').addEventListener('pointerdown', (e) => { e.stopPropagation(); });
+    document.getElementById('octDown').addEventListener('click', (e) => { shiftOctave(-1); });
+    document.getElementById('octUp').addEventListener('click', (e) => { shiftOctave(1); });
+    document.getElementById('scoreToggle').addEventListener('click', toggleScoreMode);
     document.getElementById('songSelect').addEventListener('change', (e) => loadSong(e.target.value));
-    document.getElementById('scoreReset').addEventListener('pointerdown', (e) => {
-        e.stopPropagation(); e.preventDefault(); loadSong(currentSong);
-    });
+    document.getElementById('scoreReset').addEventListener('click', () => loadSong(currentSong));
 
     // ════════════════════════════════════════════════════════════════
-    // 初始化（放在所有事件绑定之后，确保 DOM ready）
+    // 初始化
     // ════════════════════════════════════════════════════════════════
-    // 曲谱相关元素初始隐藏
-    document.getElementById('scoreDisplay').style.display = 'none';
-    document.getElementById('scoreProgressBar').parentElement.style.display = 'none'; // 隐藏进度条外层
-    document.getElementById('songSelect').style.display = 'none';
-    document.getElementById('scoreReset').style.display = 'none';
-
-    // 初始化琴键（放最后确保 DOM 已经完全 ready）
-    requestAnimationFrame(() => {
-        buildPiano();
-    });
+    requestAnimationFrame(() => { buildPiano(); });
 
     if (!window.matchMedia('(display-mode: fullscreen)').matches &&
         !window.matchMedia('(display-mode: standalone)').matches &&
@@ -830,7 +780,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js?v=7')
+            navigator.serviceWorker.register('./sw.js?v=8')
                 .then((reg) => console.log('✓ SW 注册成功:', reg.scope))
                 .catch((err) => console.log('SW 注册失败:', err));
         });
