@@ -25,16 +25,9 @@
             gap: 4px;
         }
 
-        /* ── 顶栏 ── */
-        .top-bar {
-            width: 100%; max-width: 600px;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 4px 0 8px; flex-shrink: 0;
-        }
-        .top-bar h1 { font-size: 22px; color: #323232; font-weight: 600; }
-
         .octave-control {
             display: flex; align-items: center; gap: 6px;
+            margin-left: auto;
         }
         .octave-btn {
             width: 36px; height: 36px; border: none; border-radius: 8px;
@@ -74,7 +67,7 @@
             display: flex; gap: 3px; overflow-x: auto; padding: 6px 4px;
             background: #fff; border-radius: 8px; border: 1px solid #e0e0e0;
             scrollbar-width: thin; -webkit-overflow-scrolling: touch;
-            min-height: 50px; align-items: center;
+            min-height: 50px; align-items: center; touch-action: pan-x;
         }
         .score-display::-webkit-scrollbar { height: 3px; }
         .score-display::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
@@ -132,18 +125,32 @@
         .white-key.highlight {
             background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%) !important;
             border-color: #ffb74d !important;
-            animation: pulse-highlight 0.6s ease infinite;
         }
-        @keyframes pulse-highlight {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255,152,0,0.4); }
-            50% { box-shadow: 0 0 8px 2px rgba(255,152,0,0.3); }
+        /* 小火苗 */
+        .key-flame {
+            position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+            font-size: 20px; pointer-events: none; z-index: 20;
+            animation: flame-float 0.8s ease-in-out infinite;
+            filter: drop-shadow(0 0 4px rgba(255,100,0,0.6));
+        }
+        .black-key .key-flame {
+            top: -10px; font-size: 16px;
+            filter: drop-shadow(0 0 6px rgba(100,180,255,0.8));
+        }
+        @keyframes flame-float {
+            0%, 100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+            50% { transform: translateX(-50%) translateY(-4px) scale(1.15); opacity: 0.85; }
+        }
+        @keyframes flame-out {
+            0% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateX(-50%) translateY(-20px) scale(0.3); opacity: 0; }
         }
         .white-key .note-name { font-size: 9px; color: #aaa; font-weight: 400; line-height: 1.1; }
         .white-key .label { font-size: 11px; color: #505050; font-weight: 600; }
 
         .black-keys {
             position: absolute; top: 0; left: 0; width: 100%; height: 58%;
-            pointer-events: none;
+            pointer-events: none; overflow: visible;
         }
         .black-key {
             position: absolute; width: 7.5%; height: 100%;
@@ -151,7 +158,7 @@
             border: 1px solid #1a1a1a; border-radius: 0 0 3px 3px;
             cursor: pointer; pointer-events: auto; transition: all 0.08s ease;
             display: flex; align-items: flex-end; justify-content: center;
-            padding-bottom: 4px; user-select: none;
+            padding-bottom: 4px; user-select: none; overflow: visible;
         }
         .black-key:active, .black-key.active {
             background: linear-gradient(180deg, #6a5a8a 0%, #5a4a7a 100%);
@@ -160,7 +167,6 @@
         .black-key.highlight {
             background: linear-gradient(180deg, #e65100 0%, #bf360c 100%) !important;
             border-color: #e65100 !important;
-            animation: pulse-highlight 0.6s ease infinite;
         }
         .black-key .label {
             font-size: 9px; color: #fff; font-weight: 500;
@@ -171,11 +177,14 @@
 
         /* ── 底栏 ── */
         .status-bar {
-            margin-top: 8px; padding: 8px 16px; background: #f0f0f0;
-            border-radius: 8px; text-align: center; min-height: 36px;
+            margin-top: 8px; padding: 6px 16px; background: #f0f0f0;
+            border-radius: 8px; text-align: center; min-height: 28px;
             width: 100%; max-width: 600px; flex-shrink: 0;
+            transition: all 0.2s;
         }
-        .status-text { font-size: 14px; color: #323232; font-weight: 500; }
+        .status-bar.score-active { padding: 8px 16px; min-height: 36px; }
+        .status-text { font-size: 13px; color: #323232; font-weight: 500; transition: font-size 0.2s; }
+        .status-bar.score-active .status-text { font-size: 15px; font-weight: 600; }
         .hint {
             margin-top: 6px; font-size: 11px; color: #999; text-align: center; flex-shrink: 0;
         }
@@ -185,8 +194,15 @@
             border-radius: 8px; width: 100%; max-width: 600px; flex-shrink: 0;
         }
 
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-3px); }
+            40% { transform: translateX(3px); }
+            60% { transform: translateX(-2px); }
+            80% { transform: translateX(2px); }
+        }
+
         @media (max-width: 360px) {
-            .top-bar h1 { font-size: 18px; }
             .keys-wrapper { height: 170px; }
             .white-key .label { font-size: 10px; }
             .white-key .note-name { font-size: 8px; }
@@ -198,16 +214,6 @@
     </style>
 </head>
 <body>
-    <!-- 顶栏：标题 + 八度切换 -->
-    <div class="top-bar">
-        <h1>🎹 键盘钢琴</h1>
-        <div class="octave-control">
-            <button class="octave-btn" id="octDown">−</button>
-            <span class="octave-label" id="octaveLabel">C4 – B5</span>
-            <button class="octave-btn" id="octUp">+</button>
-        </div>
-    </div>
-
     <!-- 曲谱模式 -->
     <div class="score-bar" id="scoreBar">
         <div class="score-controls">
@@ -219,6 +225,12 @@
                 <option value="canon">卡农 (简单版)</option>
                 <option value="mary">玛丽的小羊羔</option>
             </select>
+            <button class="score-btn" id="scoreReset" style="display:none">↺ 重来</button>
+            <div class="octave-control">
+                <button class="octave-btn" id="octDown">−</button>
+                <span class="octave-label" id="octaveLabel">C4 – B5</span>
+                <button class="octave-btn" id="octUp">+</button>
+            </div>
         </div>
         <div class="score-display" id="scoreDisplay"></div>
         <div class="score-progress"><div class="score-progress-bar" id="scoreProgressBar"></div></div>
@@ -260,27 +272,30 @@
     const MAX_OCTAVE = 6;
 
     // 键盘快捷键映射（固定位置，对应屏幕上当前显示的键）
-    const WHITE_SHORTCUTS = ['A','S','D','F','G','H','J','K','L',';',';',"'","'","'"];
-    const BLACK_SHORTCUTS = ['W','E',null,'T','Y','U',null,'I','O',null];
+    const WHITE_SHORTCUTS = ['A','S','D','F','G','H','J','K','L',';',"'",'','',''];
+    // 前7个黑键有快捷键: C#4 D#4 F#4 G#4 A#4 C#5 D#5 → W E T Y U I O
+    const BLACK_SHORTCUTS_FLAT = ['W','E','T','Y','U','I','O'];
 
     // 生成当前八度范围的配置
     function generateKeys() {
         const whiteKeys = [];
         const blackKeys = [];
 
+        let blackCount = 0;
         for (let oct = baseOctave; oct <= baseOctave + 1; oct++) {
             // 白键
             WHITE_NOTE_NAMES.forEach((name) => {
                 whiteKeys.push({ note: `${name}${oct}`, freq: getFrequency(name, oct) });
             });
             // 黑键
-            BLACK_NOTE_INDICES.forEach((idx, i) => {
+            BLACK_NOTE_INDICES.forEach((idx) => {
                 blackKeys.push({
                     note: `${NOTE_NAMES[idx]}${oct}`,
                     freq: getFrequency(NOTE_NAMES[idx], oct),
-                    shortcut: BLACK_SHORTCUTS[i] || '',
+                    shortcut: blackCount < BLACK_SHORTCUTS_FLAT.length ? BLACK_SHORTCUTS_FLAT[blackCount] : '',
                     octOffset: oct - baseOctave
                 });
+                blackCount++;
             });
         }
         return { whiteKeys, blackKeys };
@@ -317,9 +332,16 @@
             try { oldest.forEach(o => o.stop()); } catch(e) {}
         }
         const now = audioContext.currentTime;
+        // 低通滤波器柔化音色
+        const lpf = audioContext.createBiquadFilter();
+        lpf.type = 'lowpass';
+        lpf.frequency.setValueAtTime(Math.min(frequency * 6, 8000), now);
+        lpf.frequency.linearRampToValueAtTime(Math.min(frequency * 3, 4000), now + 0.5);
+        lpf.Q.setValueAtTime(0.7, now);
+        lpf.connect(audioContext.destination);
         const masterGain = audioContext.createGain();
         masterGain.gain.setValueAtTime(0.5, now);
-        masterGain.connect(audioContext.destination);
+        masterGain.connect(lpf);
         const oscs = [];
 
         // 基音 — 三角波
@@ -378,7 +400,7 @@
         birthday: {
             name: '生日快乐',
             notes: ['C4','C4','D4','C4','F4','E4','_','C4','C4','D4','C4','G4','F4','_',
-                    'C4','C4','C5','A4','F4','E4','D4','_','Bb4','Bb4','A4','F4','G4','F4']
+                    'C4','C4','C5','A4','F4','E4','D4','_','A#4','A#4','A4','F4','G4','F4']
         },
         canon: {
             name: '卡农 (简单版)',
@@ -396,6 +418,8 @@
     let currentSong = 'twinkle';
     let scoreIndex = 0;
     let scoreNotes = [];
+    let scoreRealNotes = []; // 缓存过滤后的数组
+    let combo = 0;
 
     // 根据曲谱音符和当前八度映射到屏幕上的键
     function mapSongNoteToCurrent(note) {
@@ -415,18 +439,23 @@
     function toggleScoreMode() {
         scoreMode = !scoreMode;
         document.getElementById('scoreToggle').classList.toggle('active', scoreMode);
-        document.getElementById('scoreBar').querySelector('.score-display').style.display = scoreMode ? 'flex' : 'none';
-        document.getElementById('scoreBar').querySelector('.score-progress').style.display = scoreMode ? 'block' : 'none';
+        document.getElementById('scoreDisplay').style.display = scoreMode ? 'flex' : 'none';
+        document.getElementById('scoreProgressBar').parentElement.style.display = scoreMode ? 'block' : 'none';
         document.getElementById('songSelect').style.display = scoreMode ? 'block' : 'none';
+        document.getElementById('scoreReset').style.display = scoreMode ? 'inline-block' : 'none';
+        document.querySelector('.status-bar').classList.toggle('score-active', scoreMode);
         if (scoreMode) loadSong(currentSong);
-        else clearScoreHighlights();
+        else { clearScoreHighlights(false); document.getElementById('statusText').textContent = '点击琴键开始演奏'; }
     }
 
     function loadSong(songId) {
         currentSong = songId;
         scoreIndex = 0;
+        combo = 0;
         scoreNotes = SONGS[songId].notes;
+        scoreRealNotes = scoreNotes.filter(n => n !== '_');
         renderScore();
+        highlightNextNote();
     }
 
     function renderScore() {
@@ -463,44 +492,75 @@
         const current = document.querySelector('#scoreDisplay .score-note.current');
         if (current) current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         // 进度条
-        const total = scoreNotes.filter(n => n !== '_').length;
+        const total = scoreRealNotes.length;
         const pct = total > 0 ? (scoreIndex / total) * 100 : 0;
         document.getElementById('scoreProgressBar').style.width = pct + '%';
     }
 
     function checkScoreInput(note) {
         if (!scoreMode) return;
-        if (scoreIndex >= scoreNotes.filter(n => n !== '_').length) {
+        if (scoreIndex >= scoreRealNotes.length) {
             // 弹完了
-            document.getElementById('statusText').textContent = '🎉 太棒了！弹完了！';
+            document.getElementById('statusText').textContent = `🎉 太棒了！全部弹完！最高连击 ${combo}`;
+            clearScoreHighlights(true);
             scoreIndex = 0;
-            setTimeout(() => updateScoreUI(), 800);
+            combo = 0;
+            setTimeout(() => { updateScoreUI(); highlightNextNote(); }, 800);
             return;
         }
-        // 找到下一个非休止符
-        const targetNote = scoreNotes.filter(n => n !== '_')[scoreIndex];
+        const targetNote = scoreRealNotes[scoreIndex];
         if (note === targetNote) {
+            combo++;
+            clearScoreHighlights(true);
             scoreIndex++;
+            const comboText = combo >= 3 ? ` 🔥×${combo}` : '';
+            document.getElementById('statusText').textContent = `🎵 ${note}${comboText}`;
             updateScoreUI();
-            highlightNextNote();
+            setTimeout(() => highlightNextNote(), 100);
+        } else {
+            // 弹错了：琴键抖动 + combo 归零
+            combo = 0;
+            const wrongEl = document.querySelector(`.piano-container [data-note="${note}"]`);
+            if (wrongEl) {
+                wrongEl.style.animation = 'shake 0.3s ease';
+                setTimeout(() => wrongEl.style.animation = '', 300);
+            }
+            document.getElementById('statusText').textContent = `✗ 应弹 ${targetNote}`;
         }
     }
 
     function highlightNextNote() {
-        clearScoreHighlights();
+        clearScoreHighlights(false);
         // 找到下一个要弹的音符
-        const realNotes = scoreNotes.filter(n => n !== '_');
-        if (scoreIndex >= realNotes.length) return;
-        const nextNote = realNotes[scoreIndex];
+        if (scoreIndex >= scoreRealNotes.length) return;
+        const nextNote = scoreRealNotes[scoreIndex];
         const mappedNote = mapSongNoteToCurrent(nextNote);
         if (mappedNote) {
-            const el = document.querySelector(`[data-note="${mappedNote}"]`);
-            if (el) el.classList.add('highlight');
+            const el = document.querySelector(`.piano-container [data-note="${mappedNote}"]`);
+            if (el) {
+                el.classList.add('highlight');
+                const isBlack = el.classList.contains('black-key');
+                const flame = document.createElement('span');
+                flame.className = 'key-flame';
+                flame.textContent = isBlack ? '💙' : '🔥';
+                el.appendChild(flame);
+            }
         }
     }
 
-    function clearScoreHighlights() {
-        document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+    function clearScoreHighlights(animate) {
+        document.querySelectorAll('.highlight').forEach(el => {
+            el.classList.remove('highlight');
+            const flame = el.querySelector('.key-flame');
+            if (flame) {
+                if (animate) {
+                    flame.style.animation = 'flame-out 0.3s ease-out forwards';
+                    setTimeout(() => flame.remove(), 300);
+                } else {
+                    flame.remove();
+                }
+            }
+        });
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -565,8 +625,9 @@
         currentWhiteKeys.forEach((k, i) => {
             if (i < wShortcuts.length) KEYBOARD_MAP[wShortcuts[i]] = k.note;
         });
-        // 黑键按顺序对应：C# D# _ F# G# A# _ C# D# _
-        const bOrder = [0,1,3,4,5,7,8]; // blackKeys中有效key的index
+        // 黑键按顺序对应：C# D# F# G# A# C# D#（跳过每八度内无黑键的位置）
+        // 两个八度各5个黑键，index 0-9，W E 对应0,1 T Y U对应2,3,4 I O对应5,6
+        const bOrder = [0,1,2,3,4,5,6]; // 前7个黑键按视觉顺序
         bOrder.forEach((idx, i) => {
             if (i < bShortcuts.length && idx < currentBlackKeys.length) {
                 KEYBOARD_MAP[bShortcuts[i]] = currentBlackKeys[idx].note;
@@ -661,7 +722,7 @@
         if (key === 'x') { shiftOctave(1); return; }
         if (KEYBOARD_MAP[key]) {
             const note = KEYBOARD_MAP[key];
-            const el = document.querySelector(`[data-note="${note}"]`);
+            const el = document.querySelector(`.piano-container [data-note="${note}"]`);
             if (el) activateKey(el, note);
         }
     });
@@ -669,7 +730,7 @@
         const key = e.key.toLowerCase();
         if (KEYBOARD_MAP[key]) {
             const note = KEYBOARD_MAP[key];
-            const el = document.querySelector(`[data-note="${note}"]`);
+            const el = document.querySelector(`.piano-container [data-note="${note}"]`);
             if (el) deactivateKey(el);
         }
     });
@@ -685,27 +746,37 @@
     }
 
     // ════════════════════════════════════════════════════════════════
-    // 八度切换（用 pointerdown 确保 touch-action:none 下也能触发）
+    // 按钮事件（pointerdown 确保 touch-action:none 下也能触发，
+    //           pointer-events 不会被 document touchstart 的 preventDefault 阻断）
     // ════════════════════════════════════════════════════════════════
-    document.getElementById('octDown').addEventListener('pointerdown', (e) => { e.stopPropagation(); shiftOctave(-1); });
-    document.getElementById('octUp').addEventListener('pointerdown', (e) => { e.stopPropagation(); shiftOctave(1); });
-
-    // ════════════════════════════════════════════════════════════════
-    // 曲谱 UI
-    // ════════════════════════════════════════════════════════════════
-    document.getElementById('scoreToggle').addEventListener('pointerdown', (e) => { e.stopPropagation(); toggleScoreMode(); });
+    document.getElementById('octDown').addEventListener('pointerdown', (e) => {
+        e.stopPropagation(); e.preventDefault(); shiftOctave(-1);
+    });
+    document.getElementById('octUp').addEventListener('pointerdown', (e) => {
+        e.stopPropagation(); e.preventDefault(); shiftOctave(1);
+    });
+    document.getElementById('scoreToggle').addEventListener('pointerdown', (e) => {
+        e.stopPropagation(); e.preventDefault(); toggleScoreMode();
+    });
     document.getElementById('songSelect').addEventListener('pointerdown', (e) => { e.stopPropagation(); });
     document.getElementById('songSelect').addEventListener('change', (e) => loadSong(e.target.value));
+    document.getElementById('scoreReset').addEventListener('pointerdown', (e) => {
+        e.stopPropagation(); e.preventDefault(); loadSong(currentSong);
+    });
 
-    // 初始化曲谱显示为隐藏
+    // ════════════════════════════════════════════════════════════════
+    // 初始化（放在所有事件绑定之后，确保 DOM ready）
+    // ════════════════════════════════════════════════════════════════
+    // 曲谱相关元素初始隐藏
     document.getElementById('scoreDisplay').style.display = 'none';
-    document.getElementById('score-progress').style.display = 'none';
+    document.getElementById('scoreProgressBar').parentElement.style.display = 'none'; // 隐藏进度条外层
     document.getElementById('songSelect').style.display = 'none';
+    document.getElementById('scoreReset').style.display = 'none';
 
-    // ════════════════════════════════════════════════════════════════
-    // 初始化
-    // ════════════════════════════════════════════════════════════════
-    buildPiano();
+    // 初始化琴键（放最后确保 DOM 已经完全 ready）
+    requestAnimationFrame(() => {
+        buildPiano();
+    });
 
     if (!window.matchMedia('(display-mode: fullscreen)').matches &&
         !window.matchMedia('(display-mode: standalone)').matches &&
@@ -715,7 +786,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js?v=5')
+            navigator.serviceWorker.register('./sw.js?v=6')
                 .then((reg) => console.log('✓ SW 注册成功:', reg.scope))
                 .catch((err) => console.log('SW 注册失败:', err));
         });
