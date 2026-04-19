@@ -1,5 +1,5 @@
-// Service Worker for Piano App - 支持离线运行（Stale-While-Revalidate）
-const CACHE_NAME = 'piano-cache-v4';
+// Service Worker for Piano App - Network First，确保始终获取最新版本
+const CACHE_NAME = 'piano-cache-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -36,28 +36,24 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 拦截请求 — Stale-While-Revalidate
-// 先立即返回缓存（快），同时在后台发起网络请求更新缓存（新）
+// 拦截请求 — Network First（网络优先，离线时回退缓存）
+// 确保用户始终拿到最新版本的 index.html
 self.addEventListener('fetch', (event) => {
-  // 只处理 GET 请求
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((cachedResponse) => {
-        // 后台更新缓存
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              cache.put(event.request, networkResponse.clone());
-            }
-            return networkResponse;
-          })
-          .catch(() => null); // 离线时网络失败，静默忽略
-
-        // 有缓存就直接返回缓存，后台悄悄更新；没缓存就等网络
-        return cachedResponse || fetchPromise;
-      });
-    })
+    fetch(event.request)
+      .then((response) => {
+        // 网络成功：更新缓存并返回
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => {
+        // 网络失败：回退缓存
+        return caches.match(event.request);
+      })
   );
 });

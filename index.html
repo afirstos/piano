@@ -715,7 +715,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
+            navigator.serviceWorker.register('./sw.js?v=5')
                 .then((reg) => console.log('✓ SW 注册成功:', reg.scope))
                 .catch((err) => console.log('SW 注册失败:', err));
         });
