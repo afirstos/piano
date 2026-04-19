@@ -22,7 +22,6 @@
             display: flex; flex-direction: column; align-items: center;
             padding: env(safe-area-inset-top, 4px) 8px env(safe-area-inset-bottom, 4px);
             overflow: hidden; user-select: none;
-            /* touch-action 不设在 body，只设在琴键和按钮上 */
         }
 
         /* ── 控件区域（按钮、下拉、曲谱）── */
@@ -92,13 +91,15 @@
             transition: width 0.2s; width: 0%;
         }
 
-        /* ── 钢琴区域（flex:1 自动撑满） ── */
+        /* ── 钢琴区域（竖屏固定比例，横屏撑满） ── */
         .piano-container {
             flex: 1; width: 100%; max-width: 600px;
             padding: 8px; background: #fafafa; border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             display: flex; flex-direction: column; min-height: 0;
             margin-top: 4px;
+            /* 竖屏限制最大高度，不让键盘占满全屏 */
+            max-height: 58vh;
         }
         .keys-wrapper {
             flex: 1; position: relative; width: 100%; min-height: 0;
@@ -201,7 +202,7 @@
             .score-select { padding: 3px 4px; font-size: 10px; max-width: 110px; }
             .score-display { min-height: 32px; max-height: 32px; padding: 2px 3px; }
             .score-note { min-width: 26px; height: 26px; font-size: 9px; }
-            .piano-container { padding: 4px; border-radius: 6px; margin-top: 2px; }
+            .piano-container { padding: 4px; border-radius: 6px; margin-top: 2px; max-height: none; }
             .status-bar { padding: 2px 10px; min-height: 20px; margin-top: 2px; }
             .status-text { font-size: 11px; }
             .hint { display: none; }
@@ -634,7 +635,8 @@
     }
 
     // ════════════════════════════════════════════════════════════════
-    // 琴键交互 — 触摸只拦截琴键区域的 touch，不影响按钮/select
+    // 琴键交互 — 触摸事件只在 piano-container 上监听，
+    // 彻底隔离控件区域（按钮、select、曲谱），不再需要判断 target
     // ════════════════════════════════════════════════════════════════
     const touchActiveKeys = new Map();
     let mouseIsDown = false, mouseActiveKey = null;
@@ -660,18 +662,10 @@
         return el.closest('.white-key, .black-key') || null;
     }
 
-    // 触摸 — 只在钢琴容器和附近区域生效，不阻止控件交互
+    // 获取 piano-container 引用（等 DOM ready）
     const pianoContainer = document.querySelector('.piano-container');
 
     function handleTouchStart(e) {
-        // 检查触摸是否在控件区域（按钮/select/曲谱），如果是则不处理
-        for (const touch of e.changedTouches) {
-            const target = document.elementFromPoint(touch.clientX, touch.clientY);
-            if (target && (target.closest('.controls-area') || target.closest('.octave-control')
-                || target.closest('.status-bar') || target.closest('.hint') || target.closest('.install-hint'))) {
-                return; // 不 preventDefault，让浏览器正常处理
-            }
-        }
         e.preventDefault(); initAudio();
         for (const touch of e.changedTouches) {
             const el = getKeyElementAt(touch.clientX, touch.clientY);
@@ -679,8 +673,6 @@
         }
     }
     function handleTouchMove(e) {
-        // 如果没有任何手指在琴键上，就不拦截
-        if (touchActiveKeys.size === 0) return;
         e.preventDefault();
         for (const touch of e.changedTouches) {
             if (!touchActiveKeys.has(touch.identifier)) continue;
@@ -701,11 +693,11 @@
             touchActiveKeys.delete(touch.identifier);
         }
     }
-    // 用 { passive: false } + 选择性 preventDefault
-    document.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: false });
-    document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    // 触摸事件绑定在 piano-container 上，不影响控件区域
+    pianoContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+    pianoContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+    pianoContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+    pianoContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     // 鼠标
     document.addEventListener('mousedown', (e) => {
@@ -780,7 +772,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js?v=8')
+            navigator.serviceWorker.register('./sw.js?v=9')
                 .then((reg) => console.log('✓ SW 注册成功:', reg.scope))
                 .catch((err) => console.log('SW 注册失败:', err));
         });
